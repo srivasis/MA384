@@ -1,10 +1,10 @@
 # MA384
 
-##Trending YouTube Video Statistics
+## Trending YouTube Video Statistics
 
-###Team Members: Hussein Alawami, Tyler Bath, Tyson Clark, Sylvia Nees, Indresh Srivastava
+### Team Members: Hussein Alawami, Tyler Bath, Tyson Clark, Sylvia Nees, Indresh Srivastava
 
-###Dataset: https://www.kaggle.com/datasnaek/youtube-new
+### Dataset: https://www.kaggle.com/datasnaek/youtube-new
 
 Columns: video_id, trending_date, title, channel_title, category_id, publish_time, tags, views, likes, dislikes, comment_count, thumbnail_link, comments_disabled, ratings_disabled, video_error_or_removed, description
 

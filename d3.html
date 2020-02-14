@@ -1,0 +1,210 @@
+
+
+<!DOCTYPE html>
+<style>
+
+  body {
+      font: 10px "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+
+  .axis path,
+  .axis line {
+      fill: none;
+      stroke: #000;
+      shape-rendering: crispEdges;
+  }
+
+  .x.axis path {
+      display: none;
+  }
+
+  .line {
+      fill: none;
+      stroke: rgb(165, 29, 154);
+      stroke-width: 1.5px;
+  }
+
+  .overlay {
+      fill: none;
+      pointer-events: all;
+  }
+
+  .focus circle {
+      fill: steelblue;
+  }
+
+  .focus text {
+      font-size: 14px;
+  }
+
+  .tooltip {
+      fill: none;
+      stroke:none;
+  }
+
+  .tooltip-date, .tooltip-likes {
+      font-weight: bold;
+  }
+
+</style>
+
+<body>
+
+<script src="https://d3js.org/d3.v4.js"></script>
+<script>
+
+  var margin = { top: 30, right: 120, bottom: 30, left: 50 },
+      width = 960 - margin.left - margin.right,
+      height = 500 - margin.top - margin.bottom,
+      tooltip = { width: 100, height: 100, x: 10, y: -30 };
+
+  var parseDate = d3.timeParse("%Y-%m-%d"),
+      bisectDate = d3.bisector(function(d) { return d.trending_date; }).left,
+      formatValue = d3.format(","),
+      dateFormatter = d3.timeParse("%Y-%m-%d");
+
+  var x = d3.scaleTime()
+          .range([0,width]);
+
+  /*var x = d3.scaleLinear()
+          .range([height, 0]);*/
+  var y = d3.scaleLinear()
+          .range([.1,0]);
+
+  console.log(x)
+  var xAxis = d3.axisBottom(x)
+      .tickFormat(d3.format("s"))
+
+  var yAxis = d3.axisLeft(y)
+      .tickFormat(d3.format("s"))
+
+  var line = d3.line()
+      .x(function(d) { 
+          console.log(d.trending_date)
+          return x(d.trending_date); })
+      .y(function(d) { 
+          console.log(d.dif)
+          return y(d.dif); });
+
+  var svg = d3.select("body").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  d3.csv("../Data/Youtube/time_until_trending.csv", function(error, data) {
+      if (error) throw error;
+
+      data.forEach(function(d) {
+        console.log(d.trending_date)
+          d.trending_date = parseDate(d.trending_date);
+          console.log(d.trending_date)
+          d.publish_time = parseDate(d.publish_time);
+          d.dif = d.dif;
+      });
+
+      /*data.sort(function(a, b) {
+          return a.date - b.date;
+      });*/
+
+      x.domain([data[0].trending_date, data[data.length - 1].trending_date]);
+      y.domain(d3.extent(data, function(d) { return d.dif; }));
+
+      svg.append("g")
+          .attr("class", "x axis")
+          .attr("transform", "translate(0," + height + ")")
+          .call(xAxis);
+
+      svg.append("g")
+          .attr("class", "y axis")
+          .call(yAxis)
+          .append("text")
+          .attr("transform", "rotate(-90)")
+          .attr("y", 6)
+          .attr("dy", ".71em")
+          .style("text-anchor", "end")
+          .text("Number of Days");
+
+      svg.append("path")
+          .datum(data)
+          .attr("class", "line")
+          .attr("d", line);
+
+      var focus = svg.append("g")
+          .attr("class", "focus")
+          .style("display", "none");
+
+      focus.append("circle")
+          .attr("r", 5);
+
+      focus.append("rect")
+          .attr("class", "tooltip")
+          .attr("width", 100)
+          .attr("height", 50)
+          .attr("x", 10)
+          .attr("y", -22)
+          .attr("rx", 4)
+          .attr("ry", 4);
+
+      focus.append("text")
+          .attr("x", 2)
+          .attr("y", 1)
+          .text("Trending Date:");
+
+      focus.append("text")
+          .attr("class", "tooltip-date")
+          .attr("x", 100)
+          .attr("y", 1);
+
+     focus.append("text")
+          .attr("x", 18)
+          .attr("y", 36)
+          .text("Publish Date:");
+      focus.append("text")
+          .attr("class", "tooltip-publish-date")
+          .attr("x", 110)
+          .attr("y", 36);
+
+       focus.append("text")
+          .attr("x", 18)
+          .attr("y", 54)
+          .text("Title:");
+       focus.append("text")
+          .attr("class", "tooltip-title")
+          .attr("x", 50)
+          .attr("y", 54);
+        
+      focus.append("text")
+          .attr("x", 18)
+          .attr("y", 18)
+          .text("Dif:");
+
+      focus.append("text")
+          .attr("class", "tooltip-dif")
+          .attr("x", 40)
+          .attr("y", 18);
+
+      svg.append("rect")
+          .attr("class", "overlay")
+          .attr("width", width)
+          .attr("height", height)
+          .on("mouseover", function() { focus.style("display", null); })
+          .on("mouseout", function() { focus.style("display", "none"); })
+          .on("mousemove", mousemove);
+
+      function mousemove() {
+          var x0 = x.invert(d3.mouse(this)[0]),
+              i = bisectDate(data, x0, 1),
+              d0 = data[i - 1],
+              d1 = data[i],
+              d = x0 - d0.trending_date > d1.trending_date - x0 ? d1 : d0;
+          focus.attr("transform", "translate(" + x(d.trending_date) + "," + y(d.dif) + ")");
+          focus.select(".tooltip-date").text(d.trending_date);
+          //focus.select(".tooltip-date").text(d.trending_date);
+          focus.select(".tooltip-publish-date").text(d.publish_time);
+          focus.select(".tooltip-title").text(d.title);
+          focus.select(".tooltip-dif").text(formatValue(d.dif));
+      }
+  });
+
+</script>
